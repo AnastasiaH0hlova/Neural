@@ -1,12 +1,13 @@
-from __future__ import annotations
+from __future__ import print_function
 
-from typing import TYPE_CHECKING, Any, Tuple, Dict
-
+from builtins import range
+from builtins import object
 import numpy as np
-from tqdm import tqdm
+import matplotlib.pyplot as plt
+from past.builtins import xrange
 
-if TYPE_CHECKING:
-    from typing import Optional, Tuple, Union, List
+from scripts.layers import softmax_loss, affine_forward, affine_backward
+from scripts.layer_utils import affine_relu_forward, affine_relu_backward
 
 class TwoLayerNet(object):
     """
@@ -15,26 +16,25 @@ class TwoLayerNet(object):
     We train the network with a softmax loss function and L2 regularization on the
     weight matrices. The network uses a ReLU nonlinearity after the first fully
     connected layer.
+
     In other words, the network has the following architecture:
+
     input - fully connected layer - ReLU - fully connected layer - softmax
+
     The outputs of the second fully-connected layer are the scores for each class.
     """
 
-    def __init__(
-            self,
-            input_size: Tuple[int, int],
-            hidden_size: Tuple[int, int],
-            output_size: Tuple[int, int],
-            std: float = 1e-4,
-    ):
+    def __init__(self, input_size, hidden_size, output_size, std=1e-4):
         """
         Initialize the model. Weights are initialized to small random values and
         biases are initialized to zero. Weights and biases are stored in the
         variable self.params, which is a dictionary with the following keys:
+
         W1: First layer weights; has shape (D, H)
         b1: First layer biases; has shape (H,)
         W2: Second layer weights; has shape (H, C)
         b2: Second layer biases; has shape (C,)
+
         Inputs:
         - input_size: The dimension D of the input data.
         - hidden_size: The number of neurons H in the hidden layer.
@@ -46,15 +46,11 @@ class TwoLayerNet(object):
         self.params['W2'] = std * np.random.randn(hidden_size, output_size)
         self.params['b2'] = np.zeros(output_size)
 
-    def loss(
-            self,
-            X: np.ndarray,
-            y: Optional[np.ndarray] = None,
-            reg: float = 0.0
-    ) -> Union[Tuple[Any, Dict[str, Union[float, Any]]], Any]:
+    def loss(self, X, y=None, reg=0.0):
         """
         Compute the loss and gradients for a two layer fully connected neural
         network.
+
         Inputs:
         - X: Input data of shape (N, D). Each X[i] is a training sample.
         - y: Vector of training labels. y[i] is the label for X[i], and each y[i] is
@@ -62,9 +58,11 @@ class TwoLayerNet(object):
           is not passed then we only return scores, and if it is passed then we
           instead return the loss and gradients.
         - reg: Regularization strength.
+
         Returns:
         If y is None, return a matrix scores of shape (N, C) where scores[i, c] is
         the score for class c on input X[i].
+
         If y is not None, instead return a tuple of:
         - loss: Loss (data loss and regularization loss) for this batch of training
           samples.
@@ -94,9 +92,6 @@ class TwoLayerNet(object):
         scores = A2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        #############################################################################
-        #                              END OF YOUR CODE                             #
-        #############################################################################
 
         # If the targets are not given then jump out, we're done
         if y is None:
@@ -120,12 +115,9 @@ class TwoLayerNet(object):
         scores_e_sum = np.sum(scores_e, axis=1).reshape((N, 1))
 
         loss = np.sum(-1 * correct_class_scores + np.log(scores_e_sum)) / N
-        loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+        loss += reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        #############################################################################
-        #                              END OF YOUR CODE                             #
-        #############################################################################
 
         # Backward pass: compute gradients
         grads = {}
@@ -139,35 +131,24 @@ class TwoLayerNet(object):
         B = np.full((N, 1), 1.0)
 
         dL = (scores_e / scores_e_sum - correct_matrix) / N
-        grads['W2'] = A1.T.dot(dL) + reg * W2
-        grads['b2'] = B.T.dot(dL)
+        grads['W2'] = A1.T.dot(dL) + 2 * reg * W2
+        grads['b2'] = dL.sum(axis=0)
 
         dA1 = dL.dot(W2.T) * (Z1 > 0)
-        grads['W1'] = X.T.dot(dA1) + reg * W1
-        grads['b1'] = B.T.dot(dA1)
+        grads['W1'] = X.T.dot(dA1) + 2* reg * W1
+        grads['b1'] = dA1.sum(axis=0)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        #############################################################################
-        #                              END OF YOUR CODE                             #
-        #############################################################################
 
         return loss, grads
 
-    def train(
-            self,
-            X: np.ndarray,
-            y: np.ndarray,
-            X_val: np.ndarray,
-            y_val: np.ndarray,
-            learning_rate: float = 1e-3,
-            learning_rate_decay: float = 0.95,
-            reg: float = 1e-5,
-            num_iters: int = 100,
-            batch_size: int = 200,
-            verbose: bool = False
-    ) -> Dict[str, List[float]]:
+    def train(self, X, y, X_val, y_val,
+              learning_rate=1e-3, learning_rate_decay=0.95,
+              reg=5e-6, num_iters=100,
+              batch_size=200, verbose=False):
         """
         Train this neural network using stochastic gradient descent.
+
         Inputs:
         - X: A numpy array of shape (N, D) giving training data.
         - y: A numpy array f shape (N,) giving training labels; y[i] = c means that
@@ -190,7 +171,7 @@ class TwoLayerNet(object):
         train_acc_history = []
         val_acc_history = []
 
-        for it in tqdm(range(num_iters)):
+        for it in range(num_iters):
             X_batch = None
             y_batch = None
 
@@ -205,9 +186,6 @@ class TwoLayerNet(object):
             y_batch = y[sample_idx]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-            #########################################################################
-            #                             END OF YOUR CODE                          #
-            #########################################################################
 
             # Compute loss and gradients using the current minibatch
             loss, grads = self.loss(X_batch, y=y_batch, reg=reg)
@@ -225,9 +203,6 @@ class TwoLayerNet(object):
                 self.params[w] -= grads[w].reshape(self.params[w].shape) * learning_rate
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-            #########################################################################
-            #                             END OF YOUR CODE                          #
-            #########################################################################
 
             if verbose and it % 100 == 0:
                 print('iteration %d / %d: loss %f' % (it, num_iters, loss))
@@ -244,19 +219,21 @@ class TwoLayerNet(object):
                 learning_rate *= learning_rate_decay
 
         return {
-            'loss_history': loss_history,
-            'train_acc_history': train_acc_history,
-            'val_acc_history': val_acc_history,
+          'loss_history': loss_history,
+          'train_acc_history': train_acc_history,
+          'val_acc_history': val_acc_history,
         }
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X):
         """
         Use the trained weights of this two-layer network to predict labels for
         data points. For each data point we predict scores for each of the C
         classes, and assign each data point to the class with the highest score.
+
         Inputs:
         - X: A numpy array of shape (N, D) giving N D-dimensional data points to
           classify.
+
         Returns:
         - y_pred: A numpy array of shape (N,) giving predicted labels for each of
           the elements of X. For all i, y_pred[i] = c means that X[i] is predicted
@@ -273,8 +250,5 @@ class TwoLayerNet(object):
         y_pred = np.argmax(scores, axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        ###########################################################################
-        #                              END OF YOUR CODE                           #
-        ###########################################################################
 
         return y_pred
